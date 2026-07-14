@@ -1,0 +1,38 @@
+#+TITLE: Longest Common Substring Algorithm
+
+* Idea
+
+Let ~length s1 = n~, ~length s2 = m~.
+
+Iterating through all possible substrings have complexity of $O(n^2m^2)$, not feasible.
+
+Try DP instead
+
+** Subproblem Definition
+
+Define the following subproblem:
+#+begin_quote
+~DP(i, j)~ = the length of the longest common substring where the substring ends at index ~i, j~ of ~s1, s2~ respectively
+#+end_quote
+
+** Subproblem Calculation
+
+For each ~i, j~, we can observe the following cases:
+1. If ~s1[i] != s2[j]~, then ~DP(i, j) = 0~
+2. If ~s1[i] == s2[j]~, then ~DP(i, j) = DP(i - 1, j - 1) + 1~
+
+** Full Solution
+
+The length of the longest common substring will be:
+\[
+\max_{i \in [0..n-1], j \in [0..m-1]}DP(i, j)
+
+\]
+
+A simple to understand way is to compute this number again after filling up the array representing the subproblem. However it can be optimized to be calculated and remembered on the fly.
+
+* Pseudocode
+
+#+begin_src ocaml
+  
+#+end_src
