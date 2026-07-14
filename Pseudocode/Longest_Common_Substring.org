@@ -29,10 +29,56 @@ The length of the longest common substring will be:
 
 \]
 
+** Small Optimizations
+
+*** Time Complexity
+
 A simple to understand way is to compute this number again after filling up the array representing the subproblem. However it can be optimized to be calculated and remembered on the fly.
+
+*** Space Complexity
+
+We will likely use two ~for~ loops going over ~i, j~.
+WLOG, let the outer loop be ~i in [0..n-1]~, and inner loop be ~j in [0..m-1]~ (~i~ be rows, ~j~ be columns).
+Then we only need to keep track of the previous row when building the subproblem.
+Thus the space complexity can be cut down to ~O(m)~.
+
+If we want to reconstruct the actual substring, for each subproblem ~DP(i, j)~, we will need to actually track the optimal substring.
+This will increase the space complexity, worse case still ~O(nm)~.
 
 * Pseudocode
 
 #+begin_src ocaml
-  
+  let longest_common_substring (s1 : string) (s2 : string) =
+    let l1 = String.length s1
+    and l2 = String.length s2 in
+    let dp = Array.init 2 (fun _ -> Array.init l2 (Fun.const (0, [])))
+    and longest = ref []
+    in
+    for i = 0 to l1 - 1 do
+      for j = 0 to l2 - 1 do
+        if s1.[i] == s2.[j]
+        then
+          begin
+            begin
+              let c = s1.[i] in
+              if j = 0
+              then dp.(1).(j) <- (1, [c])
+              else
+                let (old_l, old_s) = dp.(0).(j-1)
+                in dp.(1).(j) <- (old_l + 1, c :: old_s)
+            end;
+            let (cur_l, cur_s) = dp.(1).(j) in
+            if cur_l >= List.length (!longest)
+            then longest := cur_s
+            else ()
+          end
+        else
+          begin
+            dp.(1).(j) <- (0, []) ;
+          end
+      done;
+      dp.(0) <- dp.(1);
+      dp.(1) <- Array.init l2 (Fun.const (0, []))
+    done;
+    List.rev (!longest)
 #+end_src
