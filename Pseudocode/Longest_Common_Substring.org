@@ -45,7 +45,7 @@ Thus the space complexity can be cut down to ~O(m)~.
 If we want to reconstruct the actual substring, for each subproblem ~DP(i, j)~, we will need to actually track the optimal substring.
 This will increase the space complexity, worse case still ~O(nm)~.
 
-* Pseudocode
+* Solution
 
 #+begin_src ocaml
   let longest_common_substring (s1 : string) (s2 : string) =
