@@ -1,0 +1,146 @@
+#+TITLE: Uniform Random Sample of n Choose k (a.k.a CLRS 3ed 5.3-7)
+
+tl;dr
+#+begin_quote
+Just because you use the random module, does not mean your algorithm produces a uniform random distribution.
+Probabilistic analysis takes more work.
+#+end_quote
+
+* Prelude (Backstory that doesn't matter)
+
+2026, I was learning OCaml. There is an exercise on the official website that essentially ask to implement a function that when given a list of length $n$ and a number $k$, produce a random sample of \(k\)-subset using the list.
+
+I wrote a linear algorithm, which was asymptotically better than the official solution.
+However, I quickly realized my function did not produce a uniform distribution.
+I asked my friend, who in turn shared the problem with a professor. The professor replied that the same question appeared in CLRS 3ed.
+
+We are going to analyze the algorithm from CLRS.
+
+* Algorithm
+
+WLOG, we will assume we are given $n$ andd $k$, and want create a random sample of \(k\)lement subset of $\{1, \dots , n\}$.
+
+The algorithm is as follow:
+
+#+begin_src ocaml
+  let rec choose (n : int) (k : int) : int list =
+    if k = 0
+    then []
+    else
+      let s' = choose (n-1) (k-1) in
+      let i = Random.int_in_range 1 n in
+      let s = if List.mem i s
+              then n :: s
+              else i :: s
+      in s
+#+end_src
+
+* Proof
+
+Proceed by Induction on the number of recursive call
+
+** Base Case: No recursive call
+
+Thus $k = 0$. There is a unique $0$-element subset, which our function produces all the time.
+It is clear the function behaves like a uniform distribution.
+
+** Induction Step:
+
+We have induction hypothesis:
+#+begin_quote
+IH: ~choose (n-1) (k-1)~ behaves like a uniform random sampling of \((k-1)\)-element subset of $\{1, \dots , n-1\}$.
+#+end_quote
+
+Setup :
+- Let \(U\) be the random variable representing the ~Random.int_in_range~ call, i.e. a discrete random distribution over the integers 1 to \(n\).
+
+We consider an arbitrary \(k\)-element subset \(s\) of \(\{1, \dots , n\}\).
+Want to show the following:
+
+\[ P( \texttt{choose n k} ~ = s ) = \frac{1}{\binom{n}{k}} \]
+
+*** Case 1: \( n \in s \)
+
+There are two main ways this can happen:
+1. \( i = n \) and \( s' = s \setminus n \), or
+2. \( i \in s' \) and \( s' = s \setminus n \) (But \(i\) can take on many values).
+
+The total probability is as follow:
+
+
+\begin{align*}
+P(\texttt{choose n k} ~ = s)
+={}& P(U = n) \times P(s' = s \setminus n) + \sum_{x \in s \setminus n} \left( P(U = x = i) \times P(s' = s \setminus n) \right) \\
+={}& \frac{1}{n} \times P(s' = s \setminus n) + \sum_{x \in s \setminus n} \left( \frac{1}{n} \times P(s' = s \setminus n) \right) \tag{Def of \(U\)} \\
+={}& \frac{1}{n} \times \frac{1}{\binom{n-1}{k-1}} + \sum_{x \in s \setminus n} \left( \frac{1}{n} \times \frac{1}{\binom{n-1}{k-1}}\right) \tag{IH} \\
+={}& \frac{1}{n} \times \frac{1}{\binom{n-1}{k-1}} + (k-1)_{} \times \frac{1}{n} \times \frac{1}{\binom{n-1}{k-1}} \\
+={}& k \times \frac{1}{n} \times \frac{1}{\binom{n-1}{k-1}} \\
+={}& k \times \frac{1}{n} \times \frac{\left((n-1) - (k-1)\right)!(k-1)!}{(n-1)!} \\
+={}& \frac{(n-k)!k!}{n!} = \frac{1}{\binom{n}{k}}\\
+\end{align*}
+
+*** Case 2: \( n \notin s \)
+
+There is only one way for this to happen
+1. \( i \in s \) and \(s' = s \setminus i \)  (But \(i\) can take on many values).
+
+The total probability is as follow:
+
+\begin{align*}
+P(\texttt{choose n k} ~ = s)
+={}& \sum_{x \in s} P(U = i = x) \times P(s' = s \setminus x) \\
+={}& \sum_{x \in s} \frac{1}{n} \times P(s' = s \setminus x) \tag{Def of \(U\)} \\
+={}& \sum_{x \in s} \frac{1}{n} \times \frac{1}{\binom{n-1}{k-1}} \tag{IH} \\
+={}& k \times \frac{1}{n} \times \frac{1}{\binom{n-1}{k-1}} \\
+={}& k \times \frac{1}{n} \times \frac{\left((n-1) - (k-1)\right)!(k-1)!}{(n-1)!} \\
+={}& \frac{1}{\binom{n}{k}}
+\end{align*}
+
+This concludes our proof
+\newpage
+* Appendix
+
+** OCaml Exercise Original Question
+
+#+begin_quote
+Extract a Given Number of Randomly Selected Elements From a List
+
+The selected items shall be returned in a list. We use the Random module and initialise it with ~Random.init 0~ at the start of the function for reproducibility and validate the solution. To make the function truly random, however, one should remove the call to ~Random.init 0~
+#+end_quote
+
+#+begin_src ocaml
+# rand_select ["a"; "b"; "c"; "d"; "e"; "f"; "g"; "h"] 3;;
+- : string list = ["e"; "c"; "g"]
+#+end_src
+\newpage
+** My incorrect solutionn
+
+#+begin_src ocaml
+  let rand_select_alt (l : 'a list) (n : int) =
+    Random.init 0;
+    let rec choose (remain_len : int) (to_select : int) (acc : int list) : int list =
+      match remain_len < to_select, to_select = 0 with
+      | true, _ -> raise (Failure "Not enough elements")
+      | false, true -> acc
+      | false, false ->
+        let min, max = 0, remain_len - to_select in
+        let index = Random.int_in_range ~min ~max in
+        choose (remain_len - index - 1) (to_select - 1) (index :: acc)
+    in
+    let diffs = choose (length l) n [] |> rev in
+    let rec collect (l : 'a list) (diffs : int list) (acc : 'a list) : 'a list =
+      match diffs with
+      | [] -> acc
+      | j :: js ->
+        let after_drop = drop j l in
+        match after_drop with
+        | [] -> raise (Failure "There are no elements left")
+        | h :: t -> collect t js (h :: acc)
+    in collect l diffs [] |> rev
+#+end_src
+
+Without going into too much detail, one can notice this gives subset with all big numbers a heavy bias.
+For example, it is too probable to pick the subset \(\{4,5\}\) out of \(\{1,2,3,4,5\}\).
+
+
+
